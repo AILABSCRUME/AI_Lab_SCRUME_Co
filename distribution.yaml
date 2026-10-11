@@ -1,5 +1,5 @@
 name: vasily
-version: 1.2.0
+version: 1.2.1
 description: "Личный помощник руководителя: документы, письма, договоры, расчёты, поиск, задачи."
 hermes_requires: ">=0.21.6"
 author: "AI laboratory SCRUM company"
