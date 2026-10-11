@@ -137,16 +137,25 @@ vasily chat
 
 ## 7. Обновление агента
 
-Владелец передаёт новый файл `vasily-<новая версия>.bundle`. Дальше:
+Владелец передаёт новый файл `vasily-<новая версия>.bundle`. Дальше в PowerShell:
 
 ```powershell
 cd $env:USERPROFILE\Downloads
 git clone vasily-v1.0.2.bundle vasily-dist-new
-hermes profile install .\vasily-dist-new --force
+
+# снять флаг «только чтение» с внутренних файлов агента (Windows-особенность git)
+powershell -Command "Get-ChildItem -Force -Recurse `"$env:LOCALAPPDATA\hermes\profiles\vasily\.git`" | ForEach-Object { $_.Attributes = 'Normal' }"
+
+hermes profile install .\vasily-dist-new --force --yes
 ```
 
 `--force` перезаписывает файлы агента (`SOUL.md`, `config.yaml`, `skills/`),
 **не трогая** ваши `.env` с ключом, память и историю переписки.
+
+> Строка со снятием «только чтение» — не украшение: git кладёт внутренние файлы
+> (`…\vasily\.git\objects\pack\*`) с атрибутом ReadOnly, а установщик при `--force`
+> пытается удалить старую копию и падает с `PermissionError: [WinError 5]`. Если
+> видите эту ошибку — выполните строку с `Attributes = 'Normal'` и повторите установку.
 
 Посмотреть, что стоит:
 
@@ -180,5 +189,6 @@ hermes profile list
 | `Profile 'vasily' does not exist` | агент не установлен — вернуться к шагу 3 |
 | Ответы вида «нет доступа к модели», 401 | ключ в `.env` пустой/с опечаткой — проверить строку и `hermes -p vasily config env-path` |
 | Установка не находит файл агента | файл не в текущем каталоге — проверить `cd $env:USERPROFILE\Downloads` и имя файла |
+| `PermissionError: [WinError 5]` при обновлении с `--force` | снять «только чтение» в `…\profiles\vasily\.git` (шаг 7) и повторить |
 | `vasily: команда не найдена` | `C:\Users\<вы>\.local\bin` не в PATH — использовать `hermes -p vasily chat` |
 | Общий диагноз | `hermes -p vasily doctor` |
