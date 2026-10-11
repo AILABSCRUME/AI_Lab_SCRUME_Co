@@ -1,0 +1,11 @@
+name: vasily
+version: 1.0.0
+description: "Личный помощник руководителя: документы, письма, договоры, расчёты, поиск, задачи."
+hermes_requires: ">=0.21.6"
+author: "Oleg"
+license: "MIT"
+
+env_requires:
+  - name: HERMES_CUSTOM_POLZA_AI_API_KEY
+    description: "Ключ API Polza.ai (свой, отдельный от ключа автора)"
+    required: true

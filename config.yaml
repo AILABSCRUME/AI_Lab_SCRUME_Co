@@ -1,0 +1,76 @@
+# Конфигурация агента. Ключ API здесь НЕ хранится — только имя переменной окружения
+# (key_env), а сама переменная лежит в .env (см. .env.EXAMPLE).
+model:
+  default: deepseek/deepseek-v4.1-flash
+  provider: custom:Polza.ai
+  base_url: https://api.polza.ai/v1
+  api_mode: chat_completions
+  key_env: HERMES_CUSTOM_POLZA_AI_API_KEY
+database:
+  journal_mode: wal
+agent:
+  max_turns: 500
+  fast_auto_seconds: 60
+  verbose: false
+  reasoning_effort: medium
+terminal:
+  backend: local
+  cwd: .
+  timeout: 180
+  home_mode: auto
+browser:
+  inactivity_timeout: 120
+  use_real_profile: false
+compression:
+  enabled: true
+  threshold: 0.5
+  target_ratio: 0.2
+  protect_last_n: 20
+display:
+  compact: false
+  streaming: true
+  skin: slate
+  language: ru
+  show_reasoning: true
+  tool_progress: all
+  show_banner: false
+stt:
+  enabled: false
+voice:
+  client_direct: false
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  memory_char_limit: 2200
+  user_char_limit: 1375
+  nudge_interval: 10
+skills:
+  creation_nudge_interval: 15
+cron:
+  catch_up_missed: true
+gateway:
+  allow_all_users: false
+telemetry:
+  shared_metrics:
+    enabled: false
+    send: false
+updates:
+  check: true
+custom_providers: []
+providers:
+  polza-ai:
+    name: Polza.ai
+    base_url: https://polza.ai/api/v1
+    model: deepseek/deepseek-v4.1-flash
+    discover_models: true
+    key_env: HERMES_CUSTOM_POLZA_AI_API_KEY
+auxiliary:
+  vision:
+    provider: custom:Polza.ai
+    model: google/gemini-3-flash-preview
+    base_url: https://api.polza.ai/v1
+    key_env: HERMES_CUSTOM_POLZA_AI_API_KEY
+    timeout: 300
+plugins:
+  enabled: []
+  disabled: []
