@@ -1,7 +1,7 @@
 # Инструкция по установке
 
-Агент **Dionis** — профиль Hermes Agent: личный помощник. Ставится одной командой,
-ключ API у каждого свой.
+Агент **Dionis** — профиль Hermes Agent: личный помощник. Ставится одной командой из
+файла, который передал вам владелец. Ключ API у каждого свой.
 
 ---
 
@@ -13,6 +13,7 @@
 | Git | `git --version` | `winget install Git.Git` |
 | Hermes Agent | `hermes --version` | см. шаг 1 |
 | Свой ключ Polza.ai | — | см. шаг 4 |
+| Файл агента `vasily-*.bundle` | — | получить у владельца (шаг 2) |
 
 Данные Hermes лежат в `%LOCALAPPDATA%\hermes`. Агент встанет в
 `%LOCALAPPDATA%\hermes\profiles\vasily`.
@@ -36,41 +37,28 @@ hermes --version
 
 ---
 
-## 2. Получить доступ к репозиторию агента
+## 2. Что вам передаёт владелец
 
-Репозиторий приватный: https://github.com/AILABSCRUME/hermes-agent-vasily
-
-Два варианта:
-
-- **A. Доступ к репозиторию** — владелец добавляет вас в
-  Settings → Collaborators. Дальше шаг 3, вариант A.
-- **B. Без доступа** — владелец передаёт файл-бандл `vasily-<версия>.bundle`
-  (например, `vasily-v1.0.1.bundle`). Дальше шаг 3, вариант B.
+Один файл: **`vasily-<версия>.bundle`** (например `vasily-v1.0.1.bundle`).
+Внутри — весь агент с историей версий. Больше ничего не нужно, доступ к репозиторию
+не требуется.
 
 ---
 
 ## 3. Установить агента
 
-### Вариант A — из репозитория (рекомендуется, потом обновляется одной командой)
-
-```powershell
-hermes profile install github.com/AILABSCRUME/hermes-agent-vasily --alias --yes
-```
-
-### Вариант B — из файла-бандла (без доступа к репозиторию)
-
-Положить `vasily-v1.0.0.bundle` в любую папку и выполнить:
+Положить файл, например, в `Downloads`, открыть PowerShell:
 
 ```powershell
 cd $env:USERPROFILE\Downloads
-git clone vasily-v1.0.0.bundle vasily-dist
+git clone vasily-v1.0.1.bundle vasily-dist
 hermes profile install .\vasily-dist --yes
 ```
 
-В обоих случаях в конце появится:
+В конце появится:
 
 ```
-✓ Installed 'vasily' v1.0.0
+✓ Installed 'vasily' v1.0.1
   Profile path: C:\Users\<вы>\AppData\Local\hermes\profiles\vasily
   Next: copy .env.EXAMPLE to .env and fill in required keys
 ```
@@ -117,18 +105,19 @@ hermes -p vasily config env-path
 hermes -p vasily chat
 ```
 
-Либо короткой командой, если при установке был флаг `--alias`:
+Первое сообщение для проверки: `Как тебя зовут и кому ты помогаешь?`
+Ответ должен быть про Dionis и вас.
+
+Короткая команда `vasily chat` вместо длинной — по желанию:
 
 ```powershell
+hermes profile alias vasily        # создаёт C:\Users\<вы>\.local\bin\vasily.bat
 vasily chat
 ```
 
-> На Windows обёртка `vasily.bat` создаётся в `C:\Users\<вы>\.local\bin`.
-> Если команда `vasily` не находится — эта папка не в PATH; добавьте её либо
+> На Windows обёртка кладётся в `C:\Users\<вы>\.local\bin`, а этой папки нет в PATH —
+> в новом терминале команда `vasily` не найдётся. Либо добавьте папку в PATH, либо
 > пользуйтесь полной формой `hermes -p vasily chat`.
-
-Первое сообщение для проверки: `Как тебя зовут и кому ты помогаешь?`
-Ответ должен быть про Dionis и вас.
 
 ---
 
@@ -148,15 +137,16 @@ vasily chat
 
 ## 7. Обновление агента
 
-Когда выходит новая версия (только для варианта A):
+Владелец передаёт новый файл `vasily-<новая версия>.bundle`. Дальше:
 
 ```powershell
-hermes profile update vasily
+cd $env:USERPROFILE\Downloads
+git clone vasily-v1.0.2.bundle vasily-dist-new
+hermes profile install .\vasily-dist-new --force
 ```
 
-Обновляются `SOUL.md`, `config.yaml`, `skills/`, `distribution.yaml`.
-**Не трогаются:** `.env` с ключом, память, история сессий, ваши правки `config.yaml`
-(сбросить его к версии из репозитория — `hermes profile update vasily --force-config`).
+`--force` перезаписывает файлы агента (`SOUL.md`, `config.yaml`, `skills/`),
+**не трогая** ваши `.env` с ключом, память и историю переписки.
 
 Посмотреть, что стоит:
 
@@ -189,6 +179,6 @@ hermes profile list
 | `hermes: command not found` | терминал не перезапущен после установки Hermes |
 | `Profile 'vasily' does not exist` | агент не установлен — вернуться к шагу 3 |
 | Ответы вида «нет доступа к модели», 401 | ключ в `.env` пустой/с опечаткой — проверить строку и `hermes -p vasily config env-path` |
-| Установка не находит репозиторий | репозиторий приватный — нет доступа (шаг 2), либо использовать вариант B |
+| Установка не находит файл агента | файл не в текущем каталоге — проверить `cd $env:USERPROFILE\Downloads` и имя файла |
 | `vasily: команда не найдена` | `C:\Users\<вы>\.local\bin` не в PATH — использовать `hermes -p vasily chat` |
 | Общий диагноз | `hermes -p vasily doctor` |
