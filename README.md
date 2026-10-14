@@ -1,15 +1,14 @@
 # Dionis — агент для руководителя
 
-Профиль Hermes Agent: личный помощник руководителя. Персона, базовый конфиг, 58 скиллов.
+Дистрибутив Hermes Agent: персона, базовый конфиг, 58 скиллов.
 Автор: AI laboratory SCRUM company.
 
 **Получателю агента:** пошаговая инструкция — [`INSTALL.md`](INSTALL.md).
-Короткий путь — запустить `setup.cmd` двойным кликом (он ставит Git, Hermes и агента,
-оставляет вписать только ключ). Вручную — из файла `vasily-<версия>.bundle`,
-доступ к репозиторию не нужен.
+Короткий путь — распаковать архив и запустить `setup.cmd` двойным кликом: он ставит
+Git, Hermes и агента, оставляет вписать только ключ. Доступ к репозиторию не нужен.
 
 **Автору:** это исходник дистрибутива. Пакет для передачи собирается скриптом
-`dist/vasily-setup/build-package.ps1`.
+`dist/vasily-setup/build-package.ps1` (имя папки историческое).
 
 ## Что внутри
 
@@ -26,6 +25,17 @@
 `key_env: HERMES_CUSTOM_POLZA_AI_API_KEY` — имя переменной, а не значение.
 В репозитории ключей нет.
 
+## Куда ставится
+
+Агент ставится в **корневой дом Hermes** (`%LOCALAPPDATA%\hermes`), а не в именованный
+профиль. Так у получателя ровно один агент и нет меню профилей — это требование сборки.
+
+`hermes profile install` здесь не используется: он умеет только именованные профили, а
+запарковать корневой профиль ядро Hermes не даёт (намеренно игнорирует `gateway.parked`
+для `default`). Поэтому `setup.ps1` копирует `SOUL.md`, `config.yaml` и `skills/` в корень
+сам и ставит файл-маркер `.dionis-install.json`, по которому следующий запуск понимает,
+что это обновление, а не чужая установка.
+
 ## Что не входит
 
 - API-ключи, `auth.json`, пароли dashboard — только свои, локальные.
@@ -35,37 +45,52 @@
 ## Передать получателю (файлом)
 
 ```bash
-cd <этот каталог>
-git bundle create ../vasily-<версия>.bundle --all
-git bundle verify ../vasily-<версия>.bundle     # ожидается «is okay» + «complete history»
+cd "$LOCALAPPDATA/hermes/dist/vasily-setup"
+powershell -NoProfile -ExecutionPolicy Bypass -File build-package.ps1
 ```
 
-Получатель разворачивает бандл по `INSTALL.md` (шаг 3).
+Скрипт берёт версию из `distribution.yaml`, собирает бандл, копирует `setup.cmd`,
+`setup.ps1`, `INSTALL.md`, `ПРОЧТИ-МЕНЯ.txt` и складывает всё в
+`../dionis-setup-v<версия>.zip`.
+
+Или вручную только бандл:
+
+```bash
+cd <этот каталог>
+git bundle create ../dionis-v<версия>.bundle --all
+git bundle verify ../dionis-v<версия>.bundle   # ожидается «is okay» + «complete history»
+```
+
+Получатель разворачивает по `INSTALL.md`.
 
 ## Обновить агента у получателя
 
-Поднять версию в `distribution.yaml`, закоммитить, создать новый бандл и передать файл.
-Получатель ставит его с флагом `--force` (шаг 7 в `INSTALL.md`): файлы агента
-перезаписываются, `.env` с ключом, память и история остаются.
-
-**Windows-ловушка при `--force`:** git кладёт файлы внутри `.git/objects/pack` с
-атрибутом ReadOnly, и установщик падает с `PermissionError: [WinError 5]` при попытке
-удалить прежнюю копию. Лечится снятием атрибута (команда в `INSTALL.md`, шаг 7).
-Альтернатива без этого шага — установить поверх через `hermes profile update vasily`,
-если источник в манифесте указывает на актуальный каталог/URL: `update` тянет
-дистрибутив заново и тоже упирается в тот же ReadOnly, так что снятие атрибута —
-основной путь.
+Поднять `version` в `distribution.yaml`, закоммитить, поставить тег, пересобрать пакет
+`build-package.ps1` и передать новый архив. Получателю достаточно положить новый
+`dionis-<версия>.bundle` рядом со `setup.cmd` и запустить его снова: маркер в доме
+подскажет, что это обновление, а `.env` с ключом, память и переписка не трогаются.
 
 ## Проверка перед передачей
 
-```bash
-hermes profile install <этот каталог> --name vasily-test --yes
-hermes profile info vasily-test        # версия, источник, требуемая переменная
-hermes -p vasily-test chat -q "Назови себя и кому помогаешь."
-hermes profile delete vasily-test -y   # на Windows сначала: hermes -p default gateway stop
+Тест на подменённой машине — так собственный дом не участвует:
+
+```powershell
+# 1. "машина" получателя: рантайм без агента
+$fake = 'C:\tmp\recv\AppData\Local'
+New-Item -ItemType Directory "$fake\hermes" -Force
+Copy-Item "$env:LOCALAPPDATA\hermes\tools" "$fake\hermes\tools" -Recurse
+Copy-Item "$env:LOCALAPPDATA\hermes\bin"   "$fake\hermes\bin"   -Recurse
+
+# 2. прогон установщика в ней
+$env:LOCALAPPDATA = $fake
+cd C:\tmp\recv\package          # распакованный dionis-setup-*.zip
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
 ```
 
-Публикация в git-репозиторий (если нужен вариант A — обновление одной командой):
+Проверить после прогона: `%LOCALAPPDATA%\hermes\SOUL.md` (персона без имени автора),
+58 скиллов, `.dionis-install.json` с версией, `.env` с ключом.
+
+Публикация в git-репозиторий (вариант с обновлением одной командой):
 
 ```bash
 git tag v<версия> && git push origin master --tags
@@ -73,9 +98,9 @@ git tag v<версия> && git push origin master --tags
 
 ## MCP (по желанию)
 
-Добавляется уже в установленном профиле:
+Добавляется уже в установленном агенте:
 
 ```bash
-hermes -p vasily mcp add <имя> --command <команда>
-hermes -p vasily mcp catalog          # посмотреть, что есть в каталоге
+hermes mcp add <имя> --command <команда>
+hermes mcp catalog          # посмотреть, что есть в каталоге
 ```
