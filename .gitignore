@@ -52,5 +52,5 @@ tui-theme-boot.json
 bin/
 node_modules/
 profiles/
-hermes-agent/
+/hermes-agent/
 *.exe
