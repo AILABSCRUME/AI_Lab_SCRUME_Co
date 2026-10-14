@@ -13,6 +13,16 @@ agent:
   fast_auto_seconds: 60
   verbose: false
   reasoning_effort: medium
+  # Опасные инструменты выключены на уровне агента, а не скрыты в интерфейсе.
+  # terminal = произвольные команды + управление процессами; code_execution = запуск кода;
+  # computer_use = управление рабочим столом мышью и клавиатурой.
+  # Это реальное ограничение возможностей агента: вызвать их он не сможет.
+  # Файловые операции (file) оставлены: чтение документов — основная работа агента.
+  # Гранулярности «читать можно, писать нельзя» в Hermes нет.
+  disabled_toolsets:
+    - terminal
+    - code_execution
+    - computer_use
 terminal:
   backend: local
   cwd: .
