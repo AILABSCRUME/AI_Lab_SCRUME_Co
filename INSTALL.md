@@ -239,9 +239,9 @@ hermes doctor
 администратора) и вставьте блок целиком:
 
 ```powershell
-$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.2.7'
+$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.2.8'
 $t = Join-Path $env:TEMP 'dionis'
-Invoke-RestMethod "$b/dionis-setup-v1.2.7.zip" -OutFile "$t.zip"
+Invoke-RestMethod "$b/dionis-setup-v1.2.8.zip" -OutFile "$t.zip"
 Expand-Archive "$t.zip" $t -Force
 & "$t\setup.cmd"
 ```
@@ -255,7 +255,7 @@ Expand-Archive "$t.zip" $t -Force
 Приложение (158 МБ) ставится отдельно:
 
 ```powershell
-$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.2.7'
+$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.2.8'
 $z = Join-Path $env:USERPROFILE 'hermes-desktop-scrum.zip'
 Invoke-RestMethod "$b/hermes-desktop-scrum.zip" -OutFile $z
 Expand-Archive $z 'C:\Hermes' -Force
