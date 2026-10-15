@@ -92,7 +92,7 @@ hermes --version
 
 ## 2. Что вам передаёт владелец
 
-Один файл: **`ailab-<версия>.bundle`** (например `ailab-v1.3.0.bundle`).
+Один файл: **`ailab-<версия>.bundle`** (например `ailab-v1.3.1.bundle`).
 Внутри — весь агент с историей версий. Больше ничего не нужно, доступ к репозиторию
 не требуется.
 
@@ -239,9 +239,9 @@ hermes doctor
 администратора) и вставьте блок целиком:
 
 ```powershell
-$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.3.0'
+$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.3.1'
 $t = Join-Path $env:TEMP 'ailab'
-Invoke-RestMethod "$b/ailab-setup-v1.3.0.zip" -OutFile "$t.zip"
+Invoke-RestMethod "$b/ailab-setup-v1.3.1.zip" -OutFile "$t.zip"
 Expand-Archive "$t.zip" $t -Force
 & "$t\setup.cmd"
 ```
@@ -255,7 +255,7 @@ Expand-Archive "$t.zip" $t -Force
 Приложение (158 МБ) ставится отдельно:
 
 ```powershell
-$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.3.0'
+$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.3.1'
 $z = Join-Path $env:USERPROFILE 'hermes-desktop-scrum.zip'
 Invoke-RestMethod "$b/hermes-desktop-scrum.zip" -OutFile $z
 Expand-Archive $z 'C:\Hermes' -Force
