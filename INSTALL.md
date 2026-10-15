@@ -1,6 +1,6 @@
 # Инструкция по установке
 
-Агент **Dionis** — Hermes Agent: личный помощник руководителя. Ключ API выдаёт владелец
+Агент **AILab SCRUME Agent** — Hermes Agent: личный помощник. Ключ API выдаёт владелец
 агента — его вы впишете один раз при установке.
 
 Агент ставится в **единственный профиль** Hermes. Переключателей профилей и лишних
@@ -10,7 +10,7 @@
 
 | Архив | Что внутри | Размер |
 |---|---|---|
-| `dionis-setup-v<версия>.zip` | агент: персона, настройки, 58 скиллов, установщик | ~1 МБ |
+| `ailab-setup-v<версия>.zip` | агент: персона, настройки, 58 скиллов, установщик | ~1 МБ |
 | `hermes-desktop-scrum.zip` | приложение Hermes с фирменным логотипом на пустом чате | ~150 МБ |
 
 Второй архив нужен, чтобы был графический интерфейс с логотипом. Без него агент
@@ -22,7 +22,7 @@
 
 ### Шаг 1. Агент
 
-Распакуйте `dionis-setup-v<версия>.zip` (все файлы должны лежать рядом) и **запустите
+Распакуйте `ailab-setup-v<версия>.zip` (все файлы должны лежать рядом) и **запустите
 `setup.cmd` двойным кликом**. Скрипт сам:
 
 1. найдёт рядом файл агента;
@@ -63,7 +63,7 @@ C:\Hermes
 | Git | `git --version` | `winget install Git.Git` |
 | Hermes Agent | `hermes --version` | см. раздел 1 (setup.cmd поставит сам) |
 | Свой ключ Polza.ai | — | получить у владельца агента |
-| Файл агента `dionis-*.bundle` | — | получить у владельца (раздел 2) |
+| Файл агента `ailab-*.bundle` | — | получить у владельца (раздел 2) |
 
 Данные Hermes лежат в `%LOCALAPPDATA%\hermes` — это и есть дом агента.
 
@@ -92,7 +92,7 @@ hermes --version
 
 ## 2. Что вам передаёт владелец
 
-Один файл: **`dionis-<версия>.bundle`** (например `dionis-v1.2.8.bundle`).
+Один файл: **`ailab-<версия>.bundle`** (например `ailab-v1.3.0.bundle`).
 Внутри — весь агент с историей версий. Больше ничего не нужно, доступ к репозиторию
 не требуется.
 
@@ -105,16 +105,16 @@ PowerShell:
 
 ```powershell
 cd $env:USERPROFILE\Downloads
-git clone dionis-<версия>.bundle dionis-dist
-Remove-Item -Recurse -Force .\dionis-dist\.git
+git clone ailab-<версия>.bundle ailab-dist
+Remove-Item -Recurse -Force .\ailab-dist\.git
 ```
 
 Скопируйте персону, настройки и скиллы в дом агента:
 
 ```powershell
-Copy-Item .\dionis-dist\SOUL.md     $env:LOCALAPPDATA\hermes\ -Force
-Copy-Item .\dionis-dist\config.yaml $env:LOCALAPPDATA\hermes\ -Force
-Copy-Item .\dionis-dist\skills      $env:LOCALAPPDATA\hermes\ -Recurse -Force
+Copy-Item .\ailab-dist\SOUL.md     $env:LOCALAPPDATA\hermes\ -Force
+Copy-Item .\ailab-dist\config.yaml $env:LOCALAPPDATA\hermes\ -Force
+Copy-Item .\ailab-dist\skills      $env:LOCALAPPDATA\hermes\ -Recurse -Force
 ```
 
 Строка с удалением `.git` — не украшение: git помечает файлы внутри `.git/objects/pack`
@@ -166,7 +166,7 @@ hermes chat
 ```
 
 Первое сообщение для проверки: `Как тебя зовут и кому ты помогаешь?`
-Ответ должен быть про Dionis и вас.
+Ответ должен быть про AILab SCRUME Agent.
 
 ---
 
@@ -186,7 +186,7 @@ hermes chat
 
 ## 7. Обновление агента
 
-**Автоматически:** положить новый `dionis-<новая версия>.bundle` в ту же папку, где лежит
+**Автоматически:** положить новый `ailab-<новая версия>.bundle` в ту же папку, где лежит
 `setup.cmd`, и снова запустить `setup.cmd`. Скрипт увидит установленного агента, обновит
 его и оставит ваш ключ, память и переписку. Прежний бандл можно не удалять — берётся
 самый свежий по имени.
@@ -225,7 +225,7 @@ hermes doctor
 | Установка остановилась с перечнем чужих данных | на машине уже работает другой агент — ставить нельзя, данные сохранены |
 | `hermes: command not found` | терминал не перезапущен после установки Hermes |
 | Ответы вида «нет доступа к модели», 401 | ключ в `.env` пустой/с опечаткой — проверить строку и `hermes config env-path` |
-| Установка не находит файл агента | файл не рядом со скриптом — положить `setup.cmd` и `dionis-*.bundle` в одну папку |
+| Установка не находит файл агента | файл не рядом со скриптом — положить `setup.cmd` и `ailab-*.bundle` в одну папку |
 | `PermissionError: [WinError 5]` при установке вручную | удалить папку `.git` в распакованном дистрибутиве (раздел 3) |
 | `WinError 32` — файл занят другим процессом | запущено приложение Hermes: значок в трее → Выход, затем запустить `setup.cmd` снова |
 | Установка идёт слишком долго | первый запуск качает Python, Node и зависимости — это минуты, не ошибка |
@@ -239,23 +239,23 @@ hermes doctor
 администратора) и вставьте блок целиком:
 
 ```powershell
-$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.2.8'
-$t = Join-Path $env:TEMP 'dionis'
-Invoke-RestMethod "$b/dionis-setup-v1.2.8.zip" -OutFile "$t.zip"
+$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.3.0'
+$t = Join-Path $env:TEMP 'ailab'
+Invoke-RestMethod "$b/ailab-setup-v1.3.0.zip" -OutFile "$t.zip"
 Expand-Archive "$t.zip" $t -Force
 & "$t\setup.cmd"
 ```
 
 Дальше всё делает установщик: Git, Hermes, агент, Блокнот для ключа, проверка.
 
-> Пути собираются через `Join-Path` намеренно. Строка вида `$t="$env:TEMP\dionis"`
+> Пути собираются через `Join-Path` намеренно. Строка вида `$t="$env:TEMP\ailab"`
 > при копировании легко теряет кавычки, и PowerShell падает с
-> `Непредвиденная лексема "\dionis"`. `Join-Path` таких кавычек не требует.
+> `Непредвиденная лексема "\ailab"`. `Join-Path` таких кавычек не требует.
 
 Приложение (158 МБ) ставится отдельно:
 
 ```powershell
-$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.2.8'
+$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.3.0'
 $z = Join-Path $env:USERPROFILE 'hermes-desktop-scrum.zip'
 Invoke-RestMethod "$b/hermes-desktop-scrum.zip" -OutFile $z
 Expand-Archive $z 'C:\Hermes' -Force
