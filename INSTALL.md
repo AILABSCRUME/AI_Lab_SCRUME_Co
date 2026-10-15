@@ -230,3 +230,34 @@ hermes doctor
 | `WinError 32` — файл занят другим процессом | запущено приложение Hermes: значок в трее → Выход, затем запустить `setup.cmd` снова |
 | Установка идёт слишком долго | первый запуск качает Python, Node и зависимости — это минуты, не ошибка |
 | Общий диагноз | `hermes doctor` |
+
+---
+
+## 10. Установка одной командой (PowerShell)
+
+Если не хочется возиться с распаковкой вручную — откройте PowerShell (обычный, без
+администратора) и вставьте блок целиком:
+
+```powershell
+$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.2.7'
+$t = Join-Path $env:TEMP 'dionis'
+Invoke-RestMethod "$b/dionis-setup-v1.2.7.zip" -OutFile "$t.zip"
+Expand-Archive "$t.zip" $t -Force
+& "$t\setup.cmd"
+```
+
+Дальше всё делает установщик: Git, Hermes, агент, Блокнот для ключа, проверка.
+
+> Пути собираются через `Join-Path` намеренно. Строка вида `$t="$env:TEMP\dionis"`
+> при копировании легко теряет кавычки, и PowerShell падает с
+> `Непредвиденная лексема "\dionis"`. `Join-Path` таких кавычек не требует.
+
+Приложение (158 МБ) ставится отдельно:
+
+```powershell
+$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.2.7'
+$z = Join-Path $env:USERPROFILE 'hermes-desktop-scrum.zip'
+Invoke-RestMethod "$b/hermes-desktop-scrum.zip" -OutFile $z
+Expand-Archive $z 'C:\Hermes' -Force
+& 'C:\Hermes\win-unpacked\Hermes.exe'
+```
