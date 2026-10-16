@@ -3,7 +3,7 @@
 model:
   default: deepseek/deepseek-v4.1-flash
   provider: custom:Polza.ai
-  base_url: https://api.polza.ai/v1
+  base_url: https://polza.ai/api/v1
   api_mode: chat_completions
   key_env: HERMES_CUSTOM_POLZA_AI_API_KEY
 database:
@@ -78,7 +78,7 @@ auxiliary:
   vision:
     provider: custom:Polza.ai
     model: google/gemini-3-flash-preview
-    base_url: https://api.polza.ai/v1
+    base_url: https://polza.ai/api/v1
     key_env: HERMES_CUSTOM_POLZA_AI_API_KEY
     timeout: 300
 plugins:
