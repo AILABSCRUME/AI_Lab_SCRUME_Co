@@ -46,10 +46,16 @@ Windows может один раз спросить подтверждение (
 C:\Hermes
 ```
 
-В папке окажется `win-unpacked\Hermes.exe` — запустите его.
+Проверка: в папке `C:\Hermes` должен лежать **`Hermes.exe`** (он распаковывается
+в корень папки, а не во вложенную). Рядом — `make-shortcut.cmd`.
+
+1. Запустите `Hermes.exe` — приложение откроется.
+2. Затем запустите `make-shortcut.cmd` **двойным кликом** — он положит на рабочий стол
+   ярлык «AILab SCRUME Agent» с фирменной иконкой. Дальше запускайте агента ярлыком.
 
 > Распаковывать нужно в постоянное место: папку «Загрузки» Windows периодически чистит,
-> и приложение сломается.
+> и приложение сломается. Сама папка `C:\Hermes` должна остаться на месте —
+> ярлык ведёт на неё.
 
 Остальные разделы нужны, только если что-то пошло не так или вы ставите агента вручную.
 
@@ -92,7 +98,7 @@ hermes --version
 
 ## 2. Что вам передаёт владелец
 
-Один файл: **`ailab-<версия>.bundle`** (например `ailab-v1.3.1.bundle`).
+Один файл: **`ailab-<версия>.bundle`** (например `ailab-v1.3.2.bundle`).
 Внутри — весь агент с историей версий. Больше ничего не нужно, доступ к репозиторию
 не требуется.
 
@@ -239,9 +245,9 @@ hermes doctor
 администратора) и вставьте блок целиком:
 
 ```powershell
-$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.3.1'
+$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.3.2'
 $t = Join-Path $env:TEMP 'ailab'
-Invoke-RestMethod "$b/ailab-setup-v1.3.1.zip" -OutFile "$t.zip"
+Invoke-RestMethod "$b/ailab-setup-v1.3.2.zip" -OutFile "$t.zip"
 Expand-Archive "$t.zip" $t -Force
 & "$t\setup.cmd"
 ```
@@ -255,9 +261,10 @@ Expand-Archive "$t.zip" $t -Force
 Приложение (158 МБ) ставится отдельно:
 
 ```powershell
-$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.3.1'
+$b = 'https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/download/v1.3.2'
 $z = Join-Path $env:USERPROFILE 'hermes-desktop-scrum.zip'
 Invoke-RestMethod "$b/hermes-desktop-scrum.zip" -OutFile $z
 Expand-Archive $z 'C:\Hermes' -Force
-& 'C:\Hermes\win-unpacked\Hermes.exe'
+& 'C:\Hermes\Hermes.exe'
+& 'C:\Hermes\make-shortcut.cmd'
 ```
