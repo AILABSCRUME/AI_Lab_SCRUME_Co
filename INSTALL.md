@@ -286,6 +286,45 @@ hermes doctor
 их доустанавливать не нужно. Свой скилл добавляется командой
 `hermes skills install <источник>`.
 
+### Границы возможностей
+
+Терминал и запуск кода **включены** — на них построены скиллы Excel, Word, PDF, PowerPoint
+и почты: это запуск python-скриптов, другого способа в Hermes нет.
+
+Пакеты для документов установщик ставит сам на шаге 8:
+
+| Формат | Пакет |
+|---|---|
+| Excel `.xlsx` | `openpyxl` |
+| Word `.docx` | `python-docx` |
+| PowerPoint `.pptx` | `python-pptx` |
+| PDF | `pypdf`, `reportlab`, `pdfplumber` |
+
+Проверено на живом доме: все четыре формата создаются и читаются обратно.
+
+Если пакеты не встали (нет интернета при установке) — доставить вручную:
+
+```powershell
+uv pip install --python "<дом>\installs\<...>\venv\Scripts\python.exe" openpyxl python-docx python-pptx pypdf reportlab pdfplumber
+```
+
+Управление рабочим столом (`computer_use`) выключено.
+
+Ограничить сильнее — одной командой:
+
+```powershell
+hermes config set agent.disabled_toolsets "[terminal, code_execution, computer_use]"
+```
+
+и вернуть обратно:
+
+```powershell
+hermes config set agent.disabled_toolsets "[computer_use]"
+```
+
+> Эти правки не переживают обновление: установщик кладёт `config.yaml` из сборки
+> заново. После обновления команду нужно повторить.
+
 ---
 
 ## 9. Если что-то не работает
