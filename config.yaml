@@ -9,7 +9,11 @@ model:
 database:
   journal_mode: wal
 agent:
-  max_turns: 500
+  # Явного потолка ходов НЕТ — как в ядре Hermes (`max_turns: null` означает
+  # «без ограничения»). В сборке стояло 500: это не защита, а обрезка длинной
+  # задачи на середине, причём молча. Если понадобится потолок — ставить
+  # через `hermes config set agent.max_turns <N>`, а не правкой файла.
+  max_turns: null
   fast_auto_seconds: 60
   verbose: false
   reasoning_effort: medium
@@ -45,9 +49,26 @@ display:
   tool_progress: all
   show_banner: false
 stt:
-  enabled: false
+  # РАСПОЗНАВАНИЕ РЕЧИ ВКЛЮЧЕНО. В ядре Hermes это `true` по умолчанию; сборка
+  # выключала его — и голосовой ввод не работал, хотя в требованиях он в списке
+  # «оставить». Локальный движок (faster-whisper) уже стоит в venv движка, ключ
+  # не нужен: модель скачается при первом использовании.
+  enabled: true
+  # Язык — русский. В ядре стоит "en" (Whisper на коротких фразах ошибается с
+  # автоопределением), а получатель говорит по-русски.
+  language: ru
 voice:
-  client_direct: false
+  # Клиентское распознавание в приложении. В ядре `true`; сборка глушила его,
+  # из-за чего голос не работал и с этой стороны.
+  client_direct: true
+tts:
+  # Синтез речи. В ядре провайдер `edge` (бесплатный, без ключа), но голос
+  # английский (en-US-AriaNeural) — для русского получателя это чтение
+  # английским голосом. Ставим русский: доступны ru-RU-SvetlanaNeural
+  # (женский) и ru-RU-DmitryNeural (мужской), проверено запросом к edge.
+  provider: edge
+  edge:
+    voice: ru-RU-SvetlanaNeural
 memory:
   memory_enabled: true
   user_profile_enabled: true
