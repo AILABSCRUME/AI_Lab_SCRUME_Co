@@ -7,7 +7,7 @@
 PowerShell (Win+R → `powershell`) и вставьте **целиком, одной строкой**:
 
 ```powershell
-cd $env:TEMP; curl.exe -L -o ailab.zip "https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/latest/download/agent-setup.zip"; Expand-Archive ailab.zip ailab -Force; .\ailab\setup.cmd
+cd $env:TEMP; Remove-Item -Recurse -Force ailab -ErrorAction SilentlyContinue; Remove-Item -Force ailab.zip -ErrorAction SilentlyContinue; curl.exe -L --fail -o ailab.zip "https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/latest/download/agent-setup.zip"; if ((Get-Item ailab.zip).Length -lt 1MB) { throw "Архив не скачался - повторите (VPN?)" }; Expand-Archive ailab.zip ailab -Force; .\ailab\setup.cmd
 ```
 
 Дальше всё делает установщик: ставит движок и агента, открывает Блокнот для ключа,
