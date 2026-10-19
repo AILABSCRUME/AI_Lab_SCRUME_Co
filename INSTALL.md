@@ -37,7 +37,7 @@
 Вставьте в PowerShell (Win+R → `powershell`), **целиком, одной строкой**:
 
 ```
-cd $env:TEMP; Remove-Item -Recurse -Force ailab -ErrorAction SilentlyContinue; Remove-Item -Force ailab.zip -ErrorAction SilentlyContinue; curl.exe -L --fail -o ailab.zip "https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/latest/download/agent-setup.zip"; if ((Get-Item ailab.zip).Length -lt 1MB) { throw "Архив не скачался - повторите (VPN?)" }; Expand-Archive ailab.zip ailab -Force; .\ailab\setup.cmd
+$d = Join-Path $env:LOCALAPPDATA 'ailab-setup'; New-Item -ItemType Directory -Force -Path $d | Out-Null; Set-Location $d; Remove-Item -Recurse -Force ailab -ErrorAction SilentlyContinue; curl.exe -L --fail -o ailab.zip "https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/latest/download/agent-setup.zip"; if (-not (Test-Path ailab.zip) -or (Get-Item ailab.zip).Length -lt 1MB) { throw "Архив не скачался. Папка: $d" }; Expand-Archive ailab.zip ailab -Force; .\ailab\setup.cmd
 ```
 
 Установщик сам делает всё по порядку:
@@ -332,6 +332,80 @@ uv pip install --python "<дом>\installs\<...>\venv\Scripts\python.exe" -U edg
 Импорт настроек безопасен: битый файл не запишется, старый конфиг останется на месте,
 копия испорченного сохранится в `backups\config\`.
 
+## Установка на удалённый компьютер
+
+Если ставите не на свой компьютер, а через RDP или удалённую сессию — есть особенность,
+из-за которой установка падает с `Permission denied` и `Архив не скачался`.
+
+### Признак
+
+```
+cd : Объект по указанному пути C:\Users\XXXXX~1.XXX не существует
+curl: (23) Failed writing body
+```
+
+Короткое имя вида `E4FB5~1.KAS` — это битая переменная `%TEMP%`. Команда `cd` не находит
+папку, PowerShell остаётся в `C:\Windows\system32`, и `curl` не может туда записать файл.
+**Сеть и VPN тут не при чём** — до скачивания дело не доходит.
+
+### Почему так бывает
+
+При удалённом входе переменные `%TEMP%` и `%TMP%` иногда указывают на путь, которого нет:
+имена собираются в коротком формате 8.3, а папка не создаётся. При **временном профиле**
+Windows та же картина.
+
+### Лечение
+
+Выполнить в той же сессии, где ставите, **до** установки:
+
+```powershell
+$env:TEMP = "$env:LOCALAPPDATA\Temp"
+$env:TMP  = "$env:LOCALAPPDATA\Temp"
+New-Item -ItemType Directory -Force -Path $env:TEMP | Out-Null
+```
+
+Затем запустить установку командой выше — она создаёт рабочую папку явно
+в `%LOCALAPPDATA%\ailab-setup` и не зависит от `%TEMP%`.
+
+### Проверить, постоянный ли профиль
+
+Это важно: **во временном профиле ставить нельзя** — всё исчезнет после выхода из системы.
+
+```powershell
+whoami
+$env:USERPROFILE
+$env:TEMP
+Test-Path $env:TEMP
+Get-ChildItem C:\Users
+```
+
+| Что видно | О чём говорит |
+|---|---|
+| `Test-Path $env:TEMP` → **False** | переменная битая — лечится командами выше |
+| `whoami` даёт имя, которого **нет** в `C:\Users` | временный профиль — ставить нельзя |
+| В `C:\Users` есть `TEMP.000` / `TEMP.001` | временный профиль, нужен ремонт учётной записи |
+
+### Чего НЕ делать при удалённой установке
+
+| Нельзя | Почему |
+|---|---|
+| Запускать установку от администратора | папки уйдут другой учётке, у пользователя будет `Access is denied` |
+| Запускать через `PsExec -s`, `Invoke-Command` от админа, задачу Планировщика | агент поставится в чужой профиль, пользователь увидит пустоту |
+| Ставить во временном профиле | всё сотрётся при выходе из системы |
+
+**Правильно:** войти по RDP **под учёткой получателя**, запустить установку там же обычным
+PowerShell. От администратора — только `FIX.cmd` или `WIPE.cmd`, и только если установка
+уже остановилась.
+
+### Если RDP недоступен
+
+```powershell
+Enter-PSSession -ComputerName <имя> -Credential <учёткаполучателя>
+```
+
+Но сначала убедиться, что **профиль получателя уже создан** — пользователь должен хотя бы раз
+войти интерактивно. Иначе установка уйдёт в несуществующий профиль.
+
 ### Границы возможностей
 
 Терминал и запуск кода **включены** — на них построены скиллы Excel, Word, PDF, PowerPoint
@@ -394,7 +468,7 @@ hermes config set agent.disabled_toolsets "[computer_use]"
 строкой**:
 
 ```powershell
-cd $env:TEMP; Remove-Item -Recurse -Force ailab -ErrorAction SilentlyContinue; Remove-Item -Force ailab.zip -ErrorAction SilentlyContinue; curl.exe -L --fail -o ailab.zip "https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/latest/download/agent-setup.zip"; if ((Get-Item ailab.zip).Length -lt 1MB) { throw "Архив не скачался - повторите (VPN?)" }; Expand-Archive ailab.zip ailab -Force; .\ailab\setup.cmd
+$d = Join-Path $env:LOCALAPPDATA 'ailab-setup'; New-Item -ItemType Directory -Force -Path $d | Out-Null; Set-Location $d; Remove-Item -Recurse -Force ailab -ErrorAction SilentlyContinue; curl.exe -L --fail -o ailab.zip "https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/latest/download/agent-setup.zip"; if (-not (Test-Path ailab.zip) -or (Get-Item ailab.zip).Length -lt 1MB) { throw "Архив не скачался. Папка: $d" }; Expand-Archive ailab.zip ailab -Force; .\ailab\setup.cmd
 ```
 
 Установщик делает всё сам: Git, Hermes, агент, Блокнот для ключа, проверка,

@@ -19,7 +19,7 @@
 PowerShell (Win+R → `powershell`) и вставьте **целиком, одной строкой**:
 
 ```powershell
-cd $env:TEMP; Remove-Item -Recurse -Force ailab -ErrorAction SilentlyContinue; Remove-Item -Force ailab.zip -ErrorAction SilentlyContinue; curl.exe -L --fail -o ailab.zip "https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/latest/download/agent-setup.zip"; if ((Get-Item ailab.zip).Length -lt 1MB) { throw "Архив не скачался - повторите (VPN?)" }; Expand-Archive ailab.zip ailab -Force; .\ailab\setup.cmd
+$d = Join-Path $env:LOCALAPPDATA 'ailab-setup'; New-Item -ItemType Directory -Force -Path $d | Out-Null; Set-Location $d; Remove-Item -Recurse -Force ailab -ErrorAction SilentlyContinue; curl.exe -L --fail -o ailab.zip "https://github.com/AILABSCRUME/AI_Lab_SCRUME_Co/releases/latest/download/agent-setup.zip"; if (-not (Test-Path ailab.zip) -or (Get-Item ailab.zip).Length -lt 1MB) { throw "Архив не скачался. Папка: $d" }; Expand-Archive ailab.zip ailab -Force; .\ailab\setup.cmd
 ```
 
 Дальше всё делает установщик: ставит движок и агента, открывает Блокнот для ключа,
