@@ -1,5 +1,5 @@
 name: ailab_scrume_agent
-version: 1.5.1
+version: 1.5.2
 description: "Личный помощник: документы, письма, договоры, расчёты, поиск, задачи."
 hermes_requires: ">=0.21.6"
 author: "AI laboratory SCRUM company"
