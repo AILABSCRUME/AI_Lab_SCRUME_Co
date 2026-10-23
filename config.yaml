@@ -86,7 +86,16 @@ telemetry:
     enabled: false
     send: false
 updates:
-  check: true
+  # ФОНОВЫЕ ПРОВЕРКИ ОБНОВЛЕНИЙ HERMES ВЫКЛЮЧЕНЫ.
+  # Получателю не нужны сообщения «вышла новая версия Hermes» про тот код,
+  # который он не ставил и сам не обновляет: у агента свой механизм — ночная
+  # задача Планировщика AILabAgentUpdate зовёт update-check.ps1 и ставит сборку
+  # из нашего репозитория (см. README.md).
+  #
+  # Гасится именно ПАССИВНАЯ проверка (source_check.py: при check=False и
+  # passive=True возвращается reason=disabled, наружу ничего не уходит).
+  # Явный `hermes update` руками продолжает работать — это осознанно.
+  check: false
 custom_providers: []
 providers:
   polza-ai:
@@ -102,6 +111,18 @@ auxiliary:
     base_url: https://polza.ai/api/v1
     key_env: HERMES_CUSTOM_POLZA_AI_API_KEY
     timeout: 300
+mcp_servers:
+  # ГОСТ-ассистент: поиск и чтение нормативных документов (ГОСТ, СП, СНиП).
+  # Ключ доступа — СВОЙ у получателя, в конфиге только имя переменной
+  # (headers.Authorization ссылается на .env), как и у ключа Polza.ai.
+  # Без ключа сервер не авторизуется: инструменты mcp__gostassistent__* будут
+  # видны, но отвечать не станут — это состояние «нет доступа», а не поломка
+  # агента. Ключ запрашивается у владельца агента.
+  gostassistent:
+    url: https://api.gostassistent.com/api/mcp
+    headers:
+      Authorization: 'Bearer ${MCP_GOSTASSISTENT_API_KEY}'
+    enabled: true
 plugins:
   enabled: []
   disabled: []

@@ -1,5 +1,5 @@
 name: ailab_scrume_agent
-version: 1.5.2
+version: 1.6.0
 description: "Личный помощник: документы, письма, договоры, расчёты, поиск, задачи."
 hermes_requires: ">=0.21.6"
 author: "AI laboratory SCRUM company"
@@ -9,3 +9,6 @@ env_requires:
   - name: HERMES_CUSTOM_POLZA_AI_API_KEY
     description: "Ключ API Polza.ai (свой, отдельный от ключа автора)"
     required: true
+  - name: MCP_GOSTASSISTENT_API_KEY
+    description: "Ключ ГОСТ-ассистента: поиск и чтение ГОСТ, СП, СНиП. Без него агент работает полностью, но инструменты mcp__gostassistent__* не авторизуются"
+    required: false

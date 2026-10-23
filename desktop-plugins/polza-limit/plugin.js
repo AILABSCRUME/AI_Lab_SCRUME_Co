@@ -12,8 +12,8 @@
  * без -c/-e, не dangerous).
  *
  * Наведение открывает подсказку с карточкой: полоса лимита,
- * разбитая по моделям, легенда с суммами и долями, цифры по лимиту и кошельку.
- * Клик — обновление.
+ * разбитая по моделям, легенда с суммами, долями и токенами (вход/выход),
+ * итог по токенам за сутки, цифры по лимиту и кошельку. Клик — обновление.
  *
  * ОГРАНИЧЕНИЯ shell.exec: только хвост stdout (4000 символов) и 30 с. Скрипт
  * печатает компактный JSON (~800 символов, ~3 с), опрос идёт раз в 5 минут.
@@ -88,7 +88,9 @@ async function fetchUsage() {
 }
 
 function money(v) {
-  return Number(v).toFixed(2)
+  // (Number(v) || 0) — иначе отсутствующее поле печатается как «NaN ₽»:
+  // payload обязан переживать и старую версию скрипта, и неполный ответ.
+  return (Number(v) || 0).toFixed(2)
 }
 
 /** Цвет всей полосы по заполнению: <30% зелёный, 30–75% акцент, ≥75% красный. */
@@ -108,18 +110,50 @@ function toneFor(pct) {
   return 'var(--ui-green)'
 }
 
-/** «Модель \x1f рубли \x1f запросы» → объект с цветом. */
+/** «Модель \x1f рубли \x1f запросы \x1f вход \x1f выход \x1f кэш» → объект с цветом.
+ *
+ *  Хвост с токенами добавлен позже. Скрипт и плагин едут в одном архиве, но при
+ *  ручной подмене одного файла из двух развёртывание может разойтись, поэтому
+ *  отсутствующие поля обязаны давать нули, а не NaN.
+ */
 function parseModels(rows) {
   return (rows || []).map((row, i) => {
-    const [name, cost, count] = String(row).split('\u001f')
+    const [name, cost, count, tin, tout, cache] = String(row).split('\u001f')
 
     return {
       name,
       cost: Number(cost) || 0,
       count: Number(count) || 0,
+      tin: Number(tin) || 0,
+      tout: Number(tout) || 0,
+      cache: Number(cache) || 0,
       color: colorFor(i, name)
     }
   })
+}
+
+/** Токены компактно для колонки: 4105847 → «4.1M», 1127 → «1.1k», 42 → «42». */
+function tokens(v) {
+  const n = Number(v) || 0
+
+  if (n >= 1_000_000) {
+    return `${(n / 1_000_000).toFixed(1)}M`
+  }
+
+  if (n >= 10_000) {
+    return `${Math.round(n / 1000)}k`
+  }
+
+  if (n >= 1_000) {
+    return `${(n / 1000).toFixed(1)}k`
+  }
+
+  return `${n}`
+}
+
+/** Токены с разрядами — для итоговой строки под легендой. */
+function exact(v) {
+  return (Number(v) || 0).toLocaleString('ru-RU')
 }
 
 /** Процент суточного лимита ключа; null — лимит не задан (или нет данных). */
@@ -147,7 +181,7 @@ function KeyCard({ k }) {
   const modelsSum = models.reduce((acc, m) => acc + m.cost, 0) || 1
 
   return jsxs('div', {
-    style: { width: '300px', display: 'flex', flexDirection: 'column', gap: '8px' },
+    style: { width: '340px', display: 'flex', flexDirection: 'column', gap: '8px' },
     children: [
       // 1. Полоса лимита, разбитая по моделям: доля каждой — от ЛИМИТА,
       // поэтому незакрашенный хвост и есть свободный лимит.
@@ -191,55 +225,106 @@ function KeyCard({ k }) {
           })
         ]
       }),
-      // 2. Легенда: цвет, модель, доля от расхода, сумма, число генераций.
+      // 2. Легенда: цвет, модель, доля от расхода, сумма, запросы, вход, выход.
+      //    Шапка обязательна: без подписей колонки цифр не читаются.
       jsxs('div', {
         style: { display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '11px' },
-        children: models.map((m, i) =>
+        children: [
           jsxs(
             'div',
             {
-              style: { display: 'flex', alignItems: 'center', gap: '6px' },
+              style: {
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--ui-text-quaternary)'
+              },
               children: [
-                jsx('span', {
-                  style: {
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '2px',
-                    background: m.color,
-                    flex: '0 0 auto'
-                  }
-                }),
-                jsx('span', {
-                  style: {
-                    flex: '1 1 auto',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  },
-                  children: m.name
-                }),
-                jsx('span', {
-                  style: { color: 'var(--ui-text-tertiary)', fontVariantNumeric: 'tabular-nums' },
-                  children: `${((m.cost / modelsSum) * 100).toFixed(1)}%`
-                }),
-                jsx('span', {
-                  style: { fontVariantNumeric: 'tabular-nums', minWidth: '58px', textAlign: 'right' },
-                  children: `${money(m.cost)} ₽`
-                }),
-                jsx('span', {
-                  style: {
-                    color: 'var(--ui-text-quaternary)',
-                    fontVariantNumeric: 'tabular-nums',
-                    minWidth: '32px',
-                    textAlign: 'right'
-                  },
-                  children: `${m.count}`
-                })
+                jsx('span', { style: { width: '8px', flex: '0 0 auto' } }),
+                jsx('span', { style: { flex: '1 1 auto' }, children: 'модель' }),
+                jsx('span', { style: { minWidth: '32px', textAlign: 'right' }, children: '%' }),
+                jsx('span', { style: { minWidth: '56px', textAlign: 'right' }, children: '₽' }),
+                jsx('span', { style: { minWidth: '26px', textAlign: 'right' }, children: 'запр' }),
+                jsx('span', { style: { minWidth: '40px', textAlign: 'right' }, children: 'вх' }),
+                jsx('span', { style: { minWidth: '34px', textAlign: 'right' }, children: 'исх' })
               ]
             },
-            `row-${i}-${m.name}`
+            'legend-head'
+          ),
+          ...models.map((m, i) =>
+            jsxs(
+              'div',
+              {
+                style: { display: 'flex', alignItems: 'center', gap: '6px' },
+                children: [
+                  jsx('span', {
+                    style: {
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '2px',
+                      background: m.color,
+                      flex: '0 0 auto'
+                    }
+                  }),
+                  jsx('span', {
+                    style: {
+                      flex: '1 1 auto',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    },
+                    children: m.name
+                  }),
+                  jsx('span', {
+                    style: {
+                      color: 'var(--ui-text-tertiary)',
+                      fontVariantNumeric: 'tabular-nums',
+                      minWidth: '32px',
+                      textAlign: 'right'
+                    },
+                    children: `${((m.cost / modelsSum) * 100).toFixed(1)}%`
+                  }),
+                  jsx('span', {
+                    style: {
+                      fontVariantNumeric: 'tabular-nums',
+                      minWidth: '56px',
+                      textAlign: 'right'
+                    },
+                    children: `${money(m.cost)} ₽`
+                  }),
+                  jsx('span', {
+                    style: {
+                      color: 'var(--ui-text-quaternary)',
+                      fontVariantNumeric: 'tabular-nums',
+                      minWidth: '26px',
+                      textAlign: 'right'
+                    },
+                    children: `${m.count}`
+                  }),
+                  jsx('span', {
+                    style: {
+                      color: 'var(--ui-text-tertiary)',
+                      fontVariantNumeric: 'tabular-nums',
+                      minWidth: '40px',
+                      textAlign: 'right'
+                    },
+                    children: tokens(m.tin)
+                  }),
+                  jsx('span', {
+                    style: {
+                      color: 'var(--ui-text-tertiary)',
+                      fontVariantNumeric: 'tabular-nums',
+                      minWidth: '34px',
+                      textAlign: 'right'
+                    },
+                    children: tokens(m.tout)
+                  })
+                ]
+              },
+              `row-${i}-${m.name}`
+            )
           )
-        )
+        ]
       }),
       // 3. Прежние цифры по ключу.
       jsxs('div', {
@@ -253,6 +338,9 @@ function KeyCard({ k }) {
           color: 'var(--ui-text-tertiary)'
         },
         children: [
+          jsx('div', {
+            children: `токены за сутки: вход ${exact(k.tin)} · из кэша ${exact(k.tcache)} · выход ${exact(k.tout)}`
+          }),
           jsx('div', {
             children: `${k.gen || 0} генераций за сутки · сброс лимита: ${k.reset || 'daily'}`
           }),
@@ -272,7 +360,7 @@ function UsageCard({ data }) {
   const keys = Array.isArray(data.k) ? data.k : []
 
   return jsxs('div', {
-    style: { width: '300px', display: 'flex', flexDirection: 'column', gap: '12px' },
+    style: { width: '340px', display: 'flex', flexDirection: 'column', gap: '12px' },
     children: [
       jsxs('div', {
         style: { display: 'flex', justifyContent: 'space-between', fontSize: '11px' },

@@ -1,24 +1,31 @@
 #!/usr/bin/env python3
-"""Суточные лимиты Polza.ai по ДВУМ ключам профилей — компактный JSON для чипа.
+"""Суточный лимит Polza.ai по ключу владельца — компактный JSON для чипа.
 
-Ключи (значения в вывод не попадают):
+Ключ (значение в вывод не попадает):
 
-  * default + local → CUSTOM_PROVIDER_POLZA_AI_KEY  из %LOCALAPPDATA%\\hermes\\.env
-  * ai-si           → HERMES_CUSTOM_POLZA_AI_API_KEY из %LOCALAPPDATA%\\hermes\\profiles\\ai-si\\.env
+  * HERMES_CUSTOM_POLZA_AI_API_KEY из %LOCALAPPDATA%\\hermes\\.env
 
-Порядок работы: сначала /key и /balance на каждый ключ (полосы готовы даже если
+Порядок работы: сначала /key и /balance (полоса и кошелёк готовы, даже если
 история не досчитается), затем генерации за местные сутки с жёстким дедлайном —
 плагин получает от shell.exec только 30 с и хвост stdout в 4000 символов.
 
 Формат: одна строка JSON
   {"ok":true,"day":"2026-10-14","k":[
-     {"p":"default + local","limit":500.0,"used":174.63,"left":325.37,"reset":"daily",
+     {"p":"мой ключ","limit":500.0,"used":174.63,"left":325.37,"reset":"daily",
       "amount":4829.57,"avail":325.37,
-      "m":["DeepSeek: DeepSeek V4.1 Flash\\x1f169.80\\x1f518", ...]},
-     {"p":"ai-si","limit":1500.0,...,"m":[...]}]}
+      "gen":45,"tin":4105847,"tout":52856,"tcache":3038816,
+      "m":["DeepSeek: DeepSeek V4.1 Flash\\x1f30.25\\x1f45\\x1f4105847\\x1f52856\\x1f3038816", ...]}]}
 
-Модели — плоские строки через \\x1f (имя, рубли, число запросов): объекты с
-длинными ключами не влезают в бюджет вывода.
+Модели — плоские строки через \\x1f (имя, рубли, число запросов, вход, выход,
+кэш): объекты с длинными ключами не влезают в бюджет вывода.
+
+Токены берутся из usage каждой генерации. Важно, что prompt_tokens ВКЛЮЧАЕТ
+cached_tokens — во входе доля кэша доходит до 90%, а кэш-чтение дешевле
+примерно вчетверо. Поэтому вход отдаётся разбитым (tin — весь вход, tcache —
+его кэшовая часть), иначе цифра входа не объясняет счёт.
+
+Совместимость: поля tin/tout/tcache и хвост строки модели добавлены позже.
+Плагин обязан переживать их отсутствие.
 """
 import argparse
 import collections
@@ -94,19 +101,22 @@ def fetch_generations(key: str, start: datetime.datetime, end: datetime.datetime
     return items
 
 
-def compact_models(rows: list[tuple[str, float, int]], total: float, max_models: int) -> list[str]:
+def compact_models(rows: list[tuple], total: float, max_models: int) -> list[str]:
+    """Строки моделей в бюджет вывода: имя␟рубли␟запросы␟вход␟выход␟кэш."""
     head, dropped = [], []
-    for name, cost, count in rows:
+    for row in rows:
+        cost = row[1]
         if (cost >= GROUP_RUB and (total <= 0 or cost / total >= GROUP_SHARE)
                 and len(head) < max_models):
-            head.append((name, cost, count))
+            head.append(row)
         else:
-            dropped.append((cost, count))
-    out = [f"{n.replace(chr(31), ' ')}\x1f{c:.2f}\x1f{k}" for n, c, k in head]
-    tail_cost = sum(c for c, _ in dropped)
-    tail_count = sum(k for _, k in dropped)
-    if tail_cost > 0.0 or tail_count:
-        out.append(f"Другое\x1f{tail_cost:.2f}\x1f{tail_count}")
+            dropped.append(row)
+    out = [f"{r[0].replace(chr(31), ' ')}\x1f{r[1]:.2f}\x1f{r[2]}\x1f{r[3]}\x1f{r[4]}\x1f{r[5]}"
+           for r in head]
+    if dropped:
+        tail = [sum(r[i] for r in dropped) for i in (1, 2, 3, 4, 5)]
+        if tail[0] > 0.0 or tail[1]:
+            out.append(f"Другое\x1f{tail[0]:.2f}\x1f{tail[1]}\x1f{tail[2]}\x1f{tail[3]}\x1f{tail[4]}")
     return out
 
 
@@ -140,14 +150,23 @@ def collect(label: str, env_path: str, env_name: str,
         pass
 
     items = fetch_generations(key, start, end)
-    per: dict[str, list] = collections.defaultdict(lambda: [0.0, 0])
+    # на модель: рубли, запросы, вход, выход, кэш
+    per: dict[str, list] = collections.defaultdict(lambda: [0.0, 0, 0, 0, 0])
     for it in items:
-        cost = float(it.get("cost") or 0)
         name = it.get("modelDisplayName") or it.get("model") or "—"
-        per[name][0] += cost
+        usage = it.get("usage") or {}
+        pdet = usage.get("prompt_tokens_details") or {}
+        per[name][0] += float(it.get("cost") or 0)
         per[name][1] += 1
-    rows = sorted(((n, v[0], v[1]) for n, v in per.items()), key=lambda r: -r[1])
+        per[name][2] += int(usage.get("prompt_tokens") or 0)
+        per[name][3] += int(usage.get("completion_tokens") or 0)
+        per[name][4] += int(pdet.get("cached_tokens") or 0)
+    rows = sorted(((n, v[0], v[1], v[2], v[3], v[4]) for n, v in per.items()),
+                  key=lambda r: -r[2])
     row["gen"] = sum(r[2] for r in rows)
+    row["tin"] = sum(r[3] for r in rows)
+    row["tout"] = sum(r[4] for r in rows)
+    row["tcache"] = sum(r[5] for r in rows)
     row["_rows"] = rows
     return row
 
@@ -167,7 +186,7 @@ def main() -> int:
     payload: dict = {}
     for cap in (MAX_MODELS, 4, 2, 0):
         for r, src in keys_models:
-            total = sum(c for _, c, _ in src)
+            total = sum(row[1] for row in src)
             r["m"] = compact_models(src, total, cap) if cap else []
         payload = {"ok": True, "day": start.strftime("%Y-%m-%d"), "k": rows}
         flat = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
@@ -182,9 +201,12 @@ def main() -> int:
             pct = (r["used"] / r["limit"] * 100) if r["limit"] else 0.0
             print(f"{r['p']}: {r['used']:.2f} из {r['limit']:.2f} ₽ ({pct:.1f} %), "
                   f"остаток {r['left']:.2f} ₽, генераций {r.get('gen', 0)}, сброс {r['reset']}")
+            print(f"    токены за сутки: вход {r.get('tin', 0):,} "
+                  f"(из них из кэша {r.get('tcache', 0):,}) · выход {r.get('tout', 0):,}")
+            print(f"    {'модель':<34}{'₽':>9}{'запр':>7}{'вход':>12}{'выход':>9}{'кэш':>12}")
             for m in r["m"]:
-                n, c, k = m.split("\x1f")
-                print(f"    {float(c):>8.2f} ₽ {k:>5}  {n}")
+                n, c, k, tin, tout, cache = m.split("\x1f")
+                print(f"    {n[:34]:<34}{float(c):>9.2f}{k:>7}{int(tin):>12,}{int(tout):>9,}{int(cache):>12,}")
         return 0
 
     json.dump(payload, sys.stdout, ensure_ascii=False, separators=(",", ":"))

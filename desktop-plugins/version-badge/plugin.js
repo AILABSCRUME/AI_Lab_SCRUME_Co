@@ -88,7 +88,7 @@ function VersionChip() {
 
   const tip = version
     ? [
-        `Сборка AILab SCRUME Agent v${version}`,
+        `Сборка AILab SCRUM Agent v${version}`,
         shortDate(data.installed) ? `Установлена: ${shortDate(data.installed)}` : '',
         data.source ? `Источник: ${data.source}` : ''
       ]
