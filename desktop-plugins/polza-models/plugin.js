@@ -1,24 +1,28 @@
 /**
- * polza-models — ранжирование моделей Polza.ai по цене в строке управления
- * композера (composer.actions), сразу за чипом расхода (order 15 против 10).
+ * polza-models — модели Polza.ai в строке управления композером
+ * (composer.actions), сразу за чипом расхода (order 15 против 10).
  *
- * Зачем: разброс цен в каталоге — три порядка. В одном и том же каталоге
- * 1,63 ₽ и 17 713 ₽ за миллион токенов входа. При таком разбросе выбирать
- * модель по названию нельзя: для черновой работы и для аудита нужны разные,
- * и «дороже» не значит «лучше для этой задачи».
+ * ДВЕ СЕКЦИИ, и это главное в плагине.
  *
- * Цены — рублёвые и уже посчитанные: каталог отдаёт их в top_provider.pricing
- * с полем currency = RUB, пересчитывать нечего.
+ * Прайс каталога — не то, что списывают. Проверено на своих генерациях:
+ * ставка входа у openai/gpt-6.1-sol 282,18 ₽ при каталоге 118,09 (×2,39),
+ * у deepseek/deepseek-v4.1-flash — 50,67 при каталоге 5,78 (×8,76), а у
+ * anthropic/claude-sonnet-5.5 совпала (×1,01). Множитель гуляет от 1,01 до
+ * 8,76, поэтому порядок по каталогу НЕ равен порядку по деньгам: по каталогу
+ * самый дорогой Claude Sonnet 5.5, по факту — GPT-6.1 Sol.
+ *
+ * Отсюда разделение:
+ *   * «по факту списания» — модели, которыми уже пользовались; ставка
+ *     посчитана из costLines каждой генерации (clientRub / quantity);
+ *   * «прайс каталога — не факт» — остальные; это ориентир для выбора,
+ *     а не цена.
  *
  * Данные достаёт локальный скрипт (scripts/polza-models/polza-models.cmd →
- * polza_models.py): читает /v1/models, фильтрует чат-модели с ценой и печатает
- * их от дешёвых к дорогим. Ключ остаётся в .env, в рендерер не попадает:
- * плагин вызывает готовый .cmd через gateway RPC shell.exec.
+ * polza_models.py). Ключ остаётся в .env, в рендерер не попадает.
  *
- * ОГРАНИЧЕНИЯ shell.exec: только ХВОСТ stdout (4000 символов) и 30 с. Скрипт
- * печатает от самого дешёвого и сам ужимает список под бюджет — иначе обрезка
- * съела бы именно дешёвые модели, самое ценное в этом списке. Опрос — раз в
- * 30 минут: каталог меняется редко, а запрос тянет 600 КБ.
+ * ОГРАНИЧЕНИЯ shell.exec: только ХВОСТ stdout (4000 символов) и 30 с.
+ * Скрипт печатает от дешёвого и ужимается под бюджет сам; опрос — раз в
+ * 30 минут (скрипт тянет каталог 600 КБ плюс историю генераций, ~21 с).
  */
 
 import { COMPOSER_AREAS, cn, haptic, host, queryClient, Tip, useQuery, useValue } from '@hermes/plugin-sdk'
@@ -27,8 +31,7 @@ import { jsx, jsxs } from 'react/jsx-runtime'
 const ID = 'polza-models'
 
 // Путь через %LOCALAPPDATA%: shell.exec выполняет команду через cmd.exe, а он
-// раскрывает переменную у каждого пользователя. Хардкод C:\\Users\\Admin на чужой
-// машине не нашёлся бы. Пробелов в пути нет — кавычки не нужны.
+// раскрывает переменную у каждого пользователя.
 const CMD =
   '%LOCALAPPDATA%\\hermes\\.polza-models\\polza-models.cmd'
 
@@ -79,66 +82,49 @@ async function fetchCatalog() {
   return parsePayload(res.stdout)
 }
 
-/** «id \x1f имя \x1f вход \x1f выход \x1f кэш» → объект.
+/** «источник \x1f id \x1f имя \x1f вход \x1f выход \x1f кэш \x1f запросов \x1f всего ₽».
  *
- *  Хвост добавлен позже, чем первые поля: при ручной подмене одного файла из
- *  двух развёртывание может разойтись, поэтому отсутствующее обязано давать
- *  нули, а не NaN.
+ *  Источник: «ф» — фактическая ставка из costLines, «п» — прайс каталога.
+ *  Хвост (запросы, всего) добавлен позже, поэтому отсутствующее даёт нули,
+ *  а не NaN: при ручной подмене одного файла из двух развёртывание разойдётся.
  */
 function parseRows(rows) {
   return (rows || []).map(row => {
-    const [id, name, pin, pout, pcache] = String(row).split('\u001f')
+    const [src, id, name, pin, pout, pcache, gen, total] = String(row).split('\u001f')
 
     return {
+      fact: src === 'ф',
       id: id || '?',
       name: name || id || '?',
       pin: Number(pin) || 0,
       pout: Number(pout) || 0,
-      pcache: Number(pcache) || 0
+      pcache: Number(pcache) || 0,
+      gen: Number(gen) || 0,
+      total: Number(total) || 0
     }
   })
 }
 
-/** «1.63» → «1,63»: каталог отдаёт точку, читается это как опечатка. */
-function rub(v, digits = 2) {
-  return (Number(v) || 0).toFixed(digits).replace('.', ',')
+/** «52.61» → «52,61»: каталог отдаёт точку, в русском тексте это опечатка. */
+function rub(v) {
+  return (Number(v) || 0).toFixed(2).replace('.', ',')
 }
 
-/** Три порядка разброса: 17713.2 → «17,7 тыс.», 1771.32 → «1 771». */
-function rubShort(v) {
-  const n = Number(v) || 0
-
-  if (n >= 10_000) {
-    return `${(n / 1000).toFixed(1).replace('.', ',')} тыс.`
-  }
-
-  if (n >= 1_000) {
-    return `${Math.round(n).toLocaleString('ru-RU')}`
-  }
-
-  return rub(n)
-}
-
-function LegendHead() {
+function LegendHead({ fact }) {
   return jsxs('div', {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      color: 'var(--ui-text-quaternary)'
-    },
+    style: { display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--ui-text-quaternary)' },
     children: [
       jsx('span', { style: { flex: '1 1 auto' }, children: 'модель' }),
-      jsx('span', { style: { minWidth: '52px', textAlign: 'right' }, children: 'вход' }),
-      jsx('span', { style: { minWidth: '52px', textAlign: 'right' }, children: 'выход' }),
-      jsx('span', { style: { minWidth: '44px', textAlign: 'right' }, children: 'кэш' })
+      jsx('span', { style: { minWidth: '50px', textAlign: 'right' }, children: 'вход' }),
+      jsx('span', { style: { minWidth: '50px', textAlign: 'right' }, children: 'выход' }),
+      jsx('span', { style: { minWidth: '42px', textAlign: 'right' }, children: 'кэш' }),
+      fact ? jsx('span', { style: { minWidth: '40px', textAlign: 'right' }, children: 'запр' }) : null,
+      fact ? jsx('span', { style: { minWidth: '58px', textAlign: 'right' }, children: '₽' }) : null
     ]
   })
 }
 
 function ModelRow({ m, index }) {
-  // Зебра вместо цвета модели: список читается сверху вниз, и полоски
-  // помогают не потерять строку. Палитра тут была бы шумом.
   const bg = index % 2 ? 'transparent' : 'var(--ui-bg-secondary, transparent)'
 
   return jsxs('div', {
@@ -167,14 +153,19 @@ function ModelRow({ m, index }) {
         ]
       }),
       jsx('span', {
-        style: { fontVariantNumeric: 'tabular-nums', minWidth: '52px', textAlign: 'right' },
+        style: {
+          fontVariantNumeric: 'tabular-nums',
+          minWidth: '50px',
+          textAlign: 'right',
+          color: m.fact ? 'var(--ui-text-primary, inherit)' : 'var(--ui-text-tertiary)'
+        },
         children: rub(m.pin)
       }),
       jsx('span', {
         style: {
           color: 'var(--ui-text-tertiary)',
           fontVariantNumeric: 'tabular-nums',
-          minWidth: '52px',
+          minWidth: '50px',
           textAlign: 'right'
         },
         children: rub(m.pout)
@@ -183,39 +174,98 @@ function ModelRow({ m, index }) {
         style: {
           color: 'var(--ui-text-quaternary)',
           fontVariantNumeric: 'tabular-nums',
-          minWidth: '44px',
+          minWidth: '42px',
           textAlign: 'right'
         },
         children: m.pcache > 0 ? rub(m.pcache) : '—'
-      })
+      }),
+      m.fact
+        ? jsx('span', {
+            style: {
+              color: 'var(--ui-text-quaternary)',
+              fontVariantNumeric: 'tabular-nums',
+              minWidth: '40px',
+              textAlign: 'right'
+            },
+            children: `${m.gen}`
+          })
+        : null,
+      m.fact
+        ? jsx('span', {
+            style: {
+              color: 'var(--ui-text-tertiary)',
+              fontVariantNumeric: 'tabular-nums',
+              minWidth: '58px',
+              textAlign: 'right'
+            },
+            children: rub(m.total)
+          })
+        : null
     ]
   }, `row-${index}-${m.id}`)
 }
 
-function CatalogCard({ data }) {
-  const models = parseRows(data.m)
+function Section({ title, note, rows, fact }) {
+  if (!rows.length) {
+    return null
+  }
 
   return jsxs('div', {
-    style: { width: '380px', display: 'flex', flexDirection: 'column', gap: '8px' },
+    style: { display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '11px' },
+    children: [
+      jsxs('div', {
+        style: { color: 'var(--ui-text-tertiary)', fontSize: '10px', textTransform: 'uppercase' },
+        children: [
+          jsx('span', { children: title }),
+          note
+            ? jsx('span', { style: { textTransform: 'none', marginLeft: '6px' }, children: note })
+            : null
+        ]
+      }),
+      jsx(LegendHead, { fact }),
+      ...rows.map((m, i) => jsx(ModelRow, { m, index: i }, `m-${i}-${m.id}`))
+    ]
+  })
+}
+
+function CatalogCard({ data }) {
+  const all = parseRows(data.m)
+  const fact = all.filter(m => m.fact)
+  const list = all.filter(m => !m.fact)
+  // Выборка истории ограничена дедлайном shell.exec (30 с), поэтому «всего ₽» —
+  // это сумма по СОБРАННЫМ генерациям, а не полный итог за окно. Ставка от
+  // размера выборки почти не зависит, а сумма — зависит, и об этом надо сказать.
+  const sample = fact.reduce((acc, m) => acc + m.gen, 0)
+
+  return jsxs('div', {
+    style: { width: '400px', display: 'flex', flexDirection: 'column', gap: '8px' },
     children: [
       jsxs('div', {
         style: { display: 'flex', justifyContent: 'space-between', fontSize: '11px' },
         children: [
           jsx('span', { style: { color: 'var(--ui-text-tertiary)' }, children: 'Polza.ai · модели по цене' }),
-          jsx('span', { style: { color: 'var(--ui-text-quaternary)' }, children: data.cur || 'RUB' })
+          jsx('span', { style: { color: 'var(--ui-text-quaternary)' }, children: `${data.cur || 'RUB'} за 1 млн токенов` })
         ]
       }),
       jsx('div', {
-        style: { color: 'var(--ui-text-quaternary)', fontSize: '11px' },
-        children: `${data.n} чат-моделей с ценой · ₽ за 1 млн токенов · от ${rub(data.min)} до ${rubShort(data.max)}`
+        style: { color: 'var(--ui-text-quaternary)', fontSize: '10px' },
+        children: `${data.nf} своих моделей по факту списания · ${data.nc} по прайсу каталога`
       }),
-      jsxs('div', {
-        style: { display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '11px' },
-        children: [jsx(LegendHead, {}), ...models.map((m, i) => jsx(ModelRow, { m, index: i }, `m-${i}-${m.id}`))]
+      jsx(Section, {
+        title: 'по факту списания',
+        note: `— costLines, списанные рубли; выборка ${sample} генераций`,
+        rows: fact,
+        fact: true
+      }),
+      jsx(Section, {
+        title: 'прайс каталога — не факт',
+        note: `— отличается от списания до 9 раз, показаны ${list.length} самых дешёвых`,
+        rows: list,
+        fact: false
       }),
       jsx('div', {
         style: { color: 'var(--ui-text-quaternary)', fontSize: '10px' },
-        children: `показаны ${models.length} самых дешёвых из ${data.n} · сортировка по входу · клик — обновить`
+        children: 'клик — обновить · сортировка по цене входа'
       })
     ]
   })
@@ -245,8 +295,6 @@ function ModelsChip() {
   return jsx(Tip, {
     label: tip,
     placement: 'control',
-    // Тема приложения вместо инверсного фона по умолчанию: таблице цен нужен
-    // обычный surface.
     className:
       'border border-(--ui-stroke-secondary) bg-(--ui-bg-elevated) text-foreground backdrop-blur-md',
     children: jsxs('button', {
@@ -283,9 +331,8 @@ export default {
   name: 'Polza models',
   defaultEnabled: true,
   register(ctx) {
-    // composer.actions рендерится внутри строки контролов, до ModelPill —
-    // то есть визуально левее выбора модели. Order 15 ставит чип сразу за
-    // расходом (10), чтобы цены и трата читались рядом.
+    // composer.actions рендерится внутри строки контролов, до ModelPill.
+    // Order 15 ставит чип сразу за расходом (10): цены и трата рядом.
     ctx.register({
       id: 'chip',
       area: COMPOSER_AREAS.actions,

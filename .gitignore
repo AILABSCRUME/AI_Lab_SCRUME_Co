@@ -54,3 +54,7 @@ node_modules/
 profiles/
 /hermes-agent/
 *.exe
+
+# Кэш Python: попадал в бандл после локальных прогонов
+__pycache__/
+*.pyc

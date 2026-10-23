@@ -9,11 +9,15 @@ metadata:
   hermes:
     tags: [pdf, reportlab, style, cyrillic, ailab]
     category: ailab
-    related_skills: [pdf, ailab-docx]
+    related_skills: [pdf]
 ---
 
 Правила фирменного стиля **AI_Lab_SCRUM Co** для PDF. Общая механика PDF (создание,
 чтение, формы, объединение) — в штатном скилле `pdf`.
+
+В примерах ниже встречаются имена стилевых констант (`INK`, `BODY_SIZE`,
+`CHAMPAGNE`, `HERO_SIZE`, `HAIRLINE`) — **их значения задаёт вызывающий код**: в скилл
+они не входят, потому что принадлежат шаблону документа, а не тексту примера.
 
 # AILAB PDF — корпоративные PDF
 

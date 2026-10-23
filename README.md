@@ -52,7 +52,7 @@ $d = Join-Path $env:LOCALAPPDATA 'ailab-setup'; New-Item -ItemType Directory -Fo
 | `distribution.yaml` | манифест: имя, версия, автор, требуемые переменные окружения |
 | `SOUL.md` | персона агента: AILab SCRUME Agent, личный помощник |
 | `config.yaml` | модель, провайдер (Polza.ai), инструменты, язык — **без ключей** |
-| `skills/` | 63 скилла: 58 штатных Hermes + 5 наших (`skills/ailab/`, раздел ниже) |
+| `skills/` | 62 скилла: 58 штатных Hermes + 4 наших (`skills/ailab/`) |
 | `INSTALL.md` | пошаговая инструкция для получателя |
 | `update-check.ps1` | ночная проверка обновлений; ставится задачей Планировщика `AILabAgentUpdate` |
 | `desktop-plugins/` | шесть плагинов окна: `version-badge`, `slogan`, `hide-messaging`, `session-time`, `polza-limit`, `polza-models` |
@@ -85,7 +85,7 @@ $d = Join-Path $env:LOCALAPPDATA 'ailab-setup'; New-Item -ItemType Directory -Fo
 | Номер сборки | виден в заголовке окна чипом `AILab v<версия>` (плагин `version-badge`) |
 | Девиз | справа от номера сборки, в заголовке окна (плагин `slogan`); на узком окне скрывается сам |
 | Время сессии | счётчик в композере слева от чипа Polza.ai (плагин `session-time`) |
-| Цены моделей | чип `Модели` рядом с расходом: модели Polza.ai от дешёвых к дорогим, ₽ за 1 млн токенов (плагин `polza-models`) |
+| Цены моделей | чип `Модели` рядом с расходом: две секции — **по факту списания** (свои модели, ставка из `costLines`) и **прайс каталога — не факт** (плагин `polza-models`) |
 | ГОСТ-ассистент | MCP-сервер `gostassistent` в конфиге; включается своим ключом в `.env` |
 | Обновления | наши ставятся сами раз в сутки ночью (задача `AILabAgentUpdate`); сообщения об обновлениях самого Hermes выключены (`updates.check: false`) |
 | Навигация | строка «Сообщения» убрана из боковой панели (плагин `hide-messaging`) |
