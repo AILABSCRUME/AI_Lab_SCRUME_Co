@@ -1,0 +1,53 @@
+NOTICE
+======
+
+AILab SCRUME Agent - дистрибутив
+Copyright (c) 2026 AI laboratory SCRUM company
+
+1. UPSTREAM
+
+Этот дистрибутив основан на Hermes Agent:
+
+    Hermes Agent
+    Copyright (c) 2025 Nous Research
+    MIT License
+    https://github.com/NousResearch/hermes-agent
+
+Условие MIT («уведомление об авторских правах и текст разрешения должны быть
+включены во все копии или существенные части ПО») выполнено так:
+
+  - текст лицензии upstream поставляется с приложением — `resources\LICENSE`
+    внутри `app-setup.zip` / `hermes-desktop-scrum.zip`;
+  - полный перечень сторонних компонентов приложения —
+    `resources\THIRD-PARTY-LICENSES.txt`;
+  - уведомление об атрибуции — `resources\NOTICE`.
+
+2. ТОВАРНЫЕ ЗНАКИ
+
+«Hermes», «Nous Research» и их логотипы — товарные знаки их правообладателей.
+Этот продукт — независимая модифицированная сборка. Она не связана с Nous
+Research, не спонсируется и не одобрена ими.
+
+3. СТОРОННИЕ КОМПОНЕНТЫ
+
+Тексты лицензий сторонних библиотек, входящих в приложение, — в файле
+`resources\THIRD-PARTY-LICENSES.txt` (сборка production-зависимостей,
+900+ пакетов, с версиями и текстами). GPL/LGPL/AGPL-компонентов нет.
+
+Отдельной атрибуции требуют:
+
+  * @vscode/codicons 0.0.45 — CC-BY-4.0. Шрифт иконок Codicon поставляется
+    внутри приложения. Атрибуция: Microsoft Corporation / VS Code (Codicons).
+  * gsap 3.15.0 — нестандартная лицензия GreenSock «no charge». Вложение
+    в состав приложения разрешено; перепродажа самого GSAP — нет.
+  * MPL-2.0 компоненты (@novnc/novnc, lightningcss, dompurify) — используются
+    без изменений, слабый копилефт уровня файла.
+
+Скиллы в этом дистрибутиве — часть Hermes Agent (MIT) с правками и
+дополнениями AI laboratory SCRUM company.
+
+4. КАК ПОЛУЧИТЬ ИСХОДНИКИ
+
+Исходники upstream: https://github.com/NousResearch/hermes-agent
+Исходники сторонних npm-пакетов: публичный реестр npm, версии указаны в
+`THIRD-PARTY-LICENSES.txt`.

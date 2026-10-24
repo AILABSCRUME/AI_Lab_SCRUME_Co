@@ -3,6 +3,12 @@
 Дистрибутив Hermes Agent: персона личного помощника, базовый конфиг, 58 скиллов.
 Автор: AI laboratory SCRUM company.
 
+Основано на **Hermes Agent** © Nous Research, лицензия MIT. Авторские права,
+товарные знаки и сторонние компоненты описаны в `NOTICE` и `LICENSE`; вместе с
+приложением поставляются `resources\LICENSE`, `resources\NOTICE` и
+`resources\THIRD-PARTY-LICENSES.txt`. Это независимая сборка, не связанная с
+Nous Research и не одобренная ими.
+
 > ## ⛔ НЕ запускайте установку «от имени администратора»
 >
 > Откройте **обычное** окно PowerShell (Win+R → `powershell`). **Не** «Запуск от имени

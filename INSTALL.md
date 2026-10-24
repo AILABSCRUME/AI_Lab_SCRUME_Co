@@ -592,3 +592,16 @@ $d = Join-Path $env:LOCALAPPDATA 'ailab-setup'; New-Item -ItemType Directory -Fo
 Приложение качать отдельно не нужно. Если же интернета нет или приложение хочется
 поставить вручную — распакуйте `hermes-desktop-scrum.zip` в постоянную папку
 (например `C:\Hermes`), запустите `Hermes.exe`, затем `make-shortcut.cmd`.
+
+## Лицензии и уведомления
+
+Дистрибутив основан на **Hermes Agent** © Nous Research (MIT) — независимая
+сборка, не связанная с Nous Research и не одобренная ими.
+
+| Файл | Что внутри |
+|---|---|
+| `LICENSE` | текст MIT для этого дистрибутива |
+| `NOTICE` | upstream, товарные знаки, сторонние компоненты |
+| `resources\LICENSE` (в приложении) | текст MIT upstream — требование его лицензии |
+| `resources\NOTICE` (в приложении) | уведомление об атрибуции, включая `@vscode/codicons` (CC-BY-4.0) и `gsap` |
+| `resources\THIRD-PARTY-LICENSES.txt` (в приложении) | перечень сторонних библиотек приложения: 900+ пакетов с версиями и текстами лицензий; GPL/LGPL/AGPL нет |
